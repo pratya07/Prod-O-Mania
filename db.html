@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Safety Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f7f9fc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            /* Align at top */
+            height: 100vh;
+            overflow-y: auto;
+            /* Allow scrolling */
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            margin: 20px;
+            max-height: 100%;
+            /* Set max height */
+            overflow-y: auto;
+            /* Allow vertical scrolling */
+        }
+        
+        h2 {
+            text-align: center;
+            color: #007bff;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        label {
+            font-weight: bold;
+            color: #333;
+            margin-top: 10px;
+            display: block;
+            font-size: 0.95rem;
+        }
+        
+        input[type="text"],
+        input[type="time"] {
+            padding: 10px;
+            width: calc(100% - 20px);
+            margin-top: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        input[type="text"]:focus,
+        input[type="time"]:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.1);
+        }
+        
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px;
+            border: none;
+            width: 100%;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .alert {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        
+        .alert.success {
+            background-color: #e0ffe0;
+            color: #2e7d32;
+            border-left: 5px solid #2e7d32;
+        }
+        
+        .alert.error {
+            background-color: #ffebeb;
+            color: #c62828;
+            border-left: 5px solid #c62828;
+        }
+        /* Responsive Design */
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            h2 {
+                font-size: 1.5rem;
+            }
+            button {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Customer Safety Dashboard</h2>
+
+        <label for="customerName">Customer Name</label>
+        <input type="text" id="customerName" placeholder="Enter customer name">
+
+        <label for="riderName">Rider Name</label>
+        <input type="text" id="riderName" placeholder="Enter rider name">
+
+        <label for="pickupLocation">Pickup Location (lat, long)</label>
+        <input type="text" id="pickupLat" placeholder="Latitude">
+        <input type="text" id="pickupLong" placeholder="Longitude">
+
+        <label for="dropLocation">Drop Location (lat, long)</label>
+        <input type="text" id="dropLat" placeholder="Latitude">
+        <input type="text" id="dropLong" placeholder="Longitude">
+
+        <label for="currentLocation">Current Location (lat, long)</label>
+        <input type="text" id="currentLat" placeholder="Latitude">
+        <input type="text" id="currentLong" placeholder="Longitude">
+
+        <label for="expectedLocation">Expected Location (lat, long)</label>
+        <input type="text" id="expectedLat" placeholder="Latitude">
+        <input type="text" id="expectedLong" placeholder="Longitude">
+
+        <label for="pickupTime">Pickup Time (24-hour format)</label>
+        <input type="time" id="pickupTime">
+
+        <label for="currentTime">Current Time</label>
+        <input type="time" id="currentTime">
+
+        <label for="dropTime">Expected Drop Time</label>
+        <input type="time" id="dropTime">
+
+        <label for="traffic">Heavy Traffic</label>
+        <input type="checkbox" id="traffic"> Yes
+
+        <button onclick="checkAnomalies()">Check Anomalies</button>
+
+        <div id="alert" class="alert"></div>
+    </div>
+
+    <script>
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the earth in km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // Distance in km
+        }
+
+        function timeDiffInHours(start, end) {
+            const startTime = new Date(`1970-01-01T${start}:00`);
+            const endTime = new Date(`1970-01-01T${end}:00`);
+            return (endTime - startTime) / (1000 * 60 * 60); // Difference in hours
+        }
+
+        function checkAnomalies() {
+            const trafficChecked = document.getElementById("traffic").checked;
+            const pickupTime = document.getElementById("pickupTime").value;
+            const currentTime = document.getElementById("currentTime").value;
+            const dropTime = document.getElementById("dropTime").value;
+
+            const pickupLat = parseFloat(document.getElementById("pickupLat").value);
+            const pickupLong = parseFloat(document.getElementById("pickupLong").value);
+            const currentLat = parseFloat(document.getElementById("currentLat").value);
+            const currentLong = parseFloat(document.getElementById("currentLong").value);
+            const expectedLat = parseFloat(document.getElementById("expectedLat").value);
+            const expectedLong = parseFloat(document.getElementById("expectedLong").value);
+
+            const timeDiffPickupCurrent = timeDiffInHours(pickupTime, currentTime);
+            const timeDiffExpectedCurrent = timeDiffInHours(pickupTime, dropTime);
+            const distance = calculateDistance(currentLat, currentLong, expectedLat, expectedLong);
+            const distanceThreshold = 5; // 5km threshold for distance
+            const timeThreshold = 1; // 1-hour threshold for time
+
+            const distanceThresholdTraffic = 25; // 5km threshold for distance
+            const timeThresholdTraffic = 4; // 1-hour threshold for time
+
+            let alertMessage = "";
+
+            if (trafficChecked) {
+                if (timeDiffPickupCurrent > timeDiffExpectedCurrent + timeThresholdTraffic) {
+                    alertMessage += "Anomaly detected: Excessive time delay.<br>";
+                }
+                if (distance > distanceThresholdTraffic) {
+                    alertMessage += "Anomaly detected: Distance exceeds threshold.<br>";
+                }
+            } else {
+                if (timeDiffPickupCurrent > timeDiffExpectedCurrent + timeThreshold) {
+                    alertMessage += "Anomaly detected: Excessive time delay without traffic.<br>";
+                }
+                if (distance > distanceThreshold) {
+                    alertMessage += "Anomaly detected: Distance exceeds threshold without traffic.<br>";
+                }
+            }
+
+            const alertDiv = document.getElementById("alert");
+            if (alertMessage) {
+                alertDiv.innerHTML = alertMessage;
+                alertDiv.className = "alert error";
+                alertDiv.style.display = "block";
+            } else {
+                alertDiv.innerHTML = "No anomalies detected.";
+                alertDiv.className = "alert success";
+                alertDiv.style.display = "block";
+            }
+        }
+    </script>
+
+</body>
+
+</html>
